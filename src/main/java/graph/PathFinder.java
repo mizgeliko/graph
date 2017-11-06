@@ -1,83 +1,65 @@
 package graph;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PathFinder {
 
-	private List<PathElement> list = new ArrayList<>();
-	private Set<PathElement> visited = new HashSet<>();
+	private List<Node> path;
+	private Node start;
 	private Node finish;
 
 	public PathFinder(Node from, Node to) {
-		if (!add(new PathElement(from)) || to == null) {
+		if (from == null || to == null) {
 			throw new IllegalArgumentException("shouldn't be null");
 		}
+		this.start = from;
 		this.finish = to;
 	}
 
-	private boolean add(PathElement element) {
-		if (element != null && !visited.contains(element)) {
-			list.add(element);
-			visited.add(element);
-			return true;
-		}
-		return false;
-	}
-
-	private void walk() {
-		PathElement current = list.get(getLastIndex());
+	private void walk(State state) {
+		PathElement current = state.getLastInPath();
 		if (current.sameNode(finish)) {
 			return;
 		}
 		if (current.hasNeighborNode(finish)) {
-			add(new PathElement(finish));
+			state.add(new PathElement(finish));
 			return;
 		}
 
 		PathElement temp;
 		while ((temp = current.next()) != null) {
-			if (add(temp)) {
+			if (state.add(temp)) {
 				current = temp;
 				if (current.sameNode(finish)) {
 					break;
 				}
 				if (current.hasNeighborNode(finish)) {
-					add(new PathElement(finish));
+					state.add(new PathElement(finish));
 					break;
 				}
 			}
 		}
 	}
 
-	private boolean endWith(Node node) {
-		return list.get(getLastIndex()).sameNode(node);
-	}
-
-	private void stepBack() {
-		list.remove(getLastIndex());
-	}
-
-	private int getLastIndex() {
-		return list.size() - 1;
-	}
-
 	public List<Node> findFirstPath() {
-		walk();
-		while (!endWith(finish)) {
-			stepBack();
-			if (list.size() == 0) {
-				break;
+		if (path == null) {
+			State state = new State();
+			state.add(new PathElement(start));
+			walk(state);
+			while (!state.endWith(finish)) {
+				if (!state.stepBack()) {
+					break;
+				}
+				walk(state);
 			}
-			walk();
+			path = state.getNodeList();
 		}
-		return list.stream().map(PathElement::getNode).collect(Collectors.toList());
+		return path;
 	}
 
-	private static class PathElement {
+	private class PathElement {
 		private Node node;
 		private int neighborIndex = 0;
 
@@ -114,6 +96,37 @@ public class PathFinder {
 		@Override
 		public int hashCode() {
 			return node.getName().hashCode();
+		}
+	}
+
+	private class State {
+		private Deque<PathElement> list = new ArrayDeque<>();
+		private Set<PathElement> visited = new HashSet<>();
+
+		private boolean endWith(Node node) {
+			return list.getLast().sameNode(node);
+		}
+
+		private boolean stepBack() {
+			list.removeLast();
+			return list.size() > 0;
+		}
+
+		private PathElement getLastInPath() {
+			return list.getLast();
+		}
+
+		private boolean add(PathElement element) {
+			if (element != null && !visited.contains(element)) {
+				list.add(element);
+				visited.add(element);
+				return true;
+			}
+			return false;
+		}
+
+		private List<Node> getNodeList() {
+			return list.stream().map(PathElement::getNode).collect(Collectors.toList());
 		}
 	}
 
