@@ -48,7 +48,7 @@ public class PathFinder {
 			State state = new State();
 			state.add(new PathElement(start));
 			walk(state);
-			while (!state.endWith(finish)) {
+			while (!state.endsWith(finish)) {
 				if (!state.stepBack()) {
 					break;
 				}
@@ -103,7 +103,7 @@ public class PathFinder {
 		private Deque<PathElement> list = new ArrayDeque<>();
 		private Set<PathElement> visited = new HashSet<>();
 
-		private boolean endWith(Node node) {
+		private boolean endsWith(Node node) {
 			return list.getLast().sameNode(node);
 		}
 
