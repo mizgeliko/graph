@@ -44,4 +44,9 @@ public class Node {
 		if (obj == null || getClass() != obj.getClass()) return false;
 		return this.getName().equals(((Node) obj).getName());
 	}
+
+	@Override
+	public String toString() {
+		return name;
+	}
 }

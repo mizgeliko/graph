@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 
 public class PathFinder {
 
-	private List<Node> path;
 	private Node start;
 	private Node finish;
 
@@ -18,12 +17,23 @@ public class PathFinder {
 		this.finish = to;
 	}
 
-	private void walk(State state) {
+	private State explorePath(State state, boolean singePath) {
+		walk(state, singePath);
+		while (!state.endsWith(finish)) {
+			if (!state.stepBack()) {
+				break;
+			}
+			walk(state, singePath);
+		}
+		return state;
+	}
+
+	private void walk(State state, boolean singePath) {
 		PathElement current = state.getLastInPath();
 		if (current.sameNode(finish)) {
 			return;
 		}
-		if (current.hasNeighborNode(finish)) {
+		if (singePath && current.hasNeighborNode(finish)) {
 			state.add(new PathElement(finish));
 			return;
 		}
@@ -35,7 +45,7 @@ public class PathFinder {
 				if (current.sameNode(finish)) {
 					break;
 				}
-				if (current.hasNeighborNode(finish)) {
+				if (singePath && current.hasNeighborNode(finish)) {
 					state.add(new PathElement(finish));
 					break;
 				}
@@ -43,20 +53,25 @@ public class PathFinder {
 		}
 	}
 
-	public List<Node> findFirstPath() {
-		if (path == null) {
-			State state = new State();
-			state.add(new PathElement(start));
-			walk(state);
-			while (!state.endsWith(finish)) {
-				if (!state.stepBack()) {
-					break;
-				}
-				walk(state);
+	public List<List<Node>> findAllPaths() {
+		List<List<Node>> paths = new ArrayList<>();
+
+		State state = new State();
+		state.add(new PathElement(start));
+		do {
+			if (state.getLastInPath().hasNext()) {
+				state.syncVisited();
+				paths.add(explorePath(state, false).getNodeList());
 			}
-			path = state.getNodeList();
-		}
-		return path;
+		} while (state.stepBack());
+		paths.sort(Comparator.comparingInt(List::size));
+		return paths;
+	}
+
+	public List<Node> findFirstPath() {
+		State state = new State();
+		state.add(new PathElement(start));
+		return explorePath(state, true).getNodeList();
 	}
 
 	private class PathElement {
@@ -71,8 +86,12 @@ public class PathFinder {
 			return node;
 		}
 
+		boolean hasNext() {
+			return node.getNeighborsSize() > neighborIndex;
+		}
+
 		PathElement next() {
-			PathElement next = node.getNeighborsSize() > neighborIndex ? new PathElement(node.getNeighbor(neighborIndex)) : null;
+			PathElement next = hasNext() ? new PathElement(node.getNeighbor(neighborIndex)) : null;
 			neighborIndex++;
 			return next;
 		}
@@ -123,6 +142,10 @@ public class PathFinder {
 				return true;
 			}
 			return false;
+		}
+
+		private void syncVisited() {
+			this.visited.retainAll(this.list);
 		}
 
 		private List<Node> getNodeList() {
